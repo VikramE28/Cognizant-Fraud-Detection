@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>InsuranceGuard: Fraud Detection</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap");
+
+        :root {
+            --primary-color: #6c63ff;
+            --secondary-color: #ff6584;
+            --text-color: #2d3748;
+            --background-color: #f7fafc;
+            --card-background: #ffffff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Poppins", sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            transition: background-color 0.3s ease;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        header {
+            background: var(--card-background);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 1rem 0;
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .image-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            width: 100%;
+        }
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        nav ul {
+            list-style-type: none;
+            display: flex;
+        }
+
+        nav ul li {
+            margin-left: 2rem;
+        }
+
+        nav ul li a {
+            color: var(--text-color);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .hero {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 4rem 0;
+        }
+
+        .hero-content {
+            flex: 1;
+        }
+
+        .hero h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+        }
+
+        .cta-button:hover {
+            background-color: #5a52d5;
+        }
+
+        .hero-image {
+            flex: 1;
+            text-align: right;
+        }
+
+        .hero-image img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin: 4rem 0;
+        }
+
+        .feature-card {
+            background: var(--card-background);
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .feature-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+        }
+
+        .fraud-form {
+            background: var(--card-background);
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 4rem;
+        }
+
+        .result {
+            margin-top: 1rem;
+            font-weight: bold;
+            display: none;
+            padding: 10px;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 1s ease-out forwards;
+        }
+
+        .fab {
+            position: fixed;
+            bottom: 16px;
+            left: 16px;
+            z-index: 9999;
+            border: none;
+            border-radius: 50%;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 52px;
+            height: 52px;
+            background-color: #6c63ff;
+            color: white;
+            font-size: 24px;
+            transition: background-color 0.3s ease;
+        }
+
+        .fab:hover {
+            background-color: #5a52d5;
+        }
+        .explanation {
+            background-color: #fff; /* Light background */
+            color: #333; /* Dark text for contrast */
+            padding: 20px; /* Padding inside the box */
+            margin: 20px 0; /* Space above and below the box */
+            border: 1px solid #ddd; /* Subtle border */
+            border-radius: 10px; /* Rounded corners */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Soft shadow */
+            max-width: auto; /* Max width of the box */
+            margin-left: auto; /* Center the box horizontally */
+            margin-right: auto;
+        }
+
+        .explanation p {
+            font-family: 'Roboto', sans-serif; /* Change the font */
+            font-size: 18px; /* Larger font size */
+            line-height: 1.6; /* More space between lines */
+        }
+
+        #chatbox {
+            position: fixed;
+            bottom: 80px;
+            left: 16px;
+            width: 350px;
+            height: 350px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            background-color: #f9f9f9;
+            padding: 10px;
+            display: none;
+            z-index: 998;
+        }
+        .space{
+            height: 100px;
+        }
+
+        #chatbox input[type="text"],
+        #chatbox button {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        #chatbox button {
+            background-color: #6c63ff;
+            color: white;
+            cursor: pointer;
+        }
+
+        #chatbox button:hover {
+            background-color: #5a52d5;
+        }
+
+        .emoji {
+            height: fit-content;
+            width: fit-content;
+            margin: 0 auto;
+            font-size: 5rem;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <nav>
+                <div class="logo">InsuranceGuard</div>
+                <ul>
+                    <li><a href="/" class="back-link">Back</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+    <div class="emoji">
+        <h1 id="emoji"></h1>
+    </div>
+    <div class="space">
+
+    </div>
+    <div class="image-container">
+        <img src="static\fraud_indicators.png" alt="Generated Plot" style="max-width: 100%; height: auto;">
+    </div>
+    <div class="explanation">
+        <h1>Explanation</h1>
+        <p class="explanation" style="font-weight: bold;">{{ explanation }}</p>
+    </div>
+
+    <div class="result">
+        <p class="model-name">Decision Tree:</p>
+        <p class="dt-percentage">{{ results['Decision Tree']|round(2) }}%</p>
+    </div>
+    <div class="result">
+        <p class="model-name">Logistic Regression:</p>
+        <p class="lr-percentage">{{ results['Logistic Regression']|round(2) }}%</p>
+    </div>
+    <div class="result">
+        <p class="model-name">XGBoost:</p>
+        <p class="xg-percentage">{{ results['XGBoost']|round(2) }}%</p>
+    </div>
+
+    <script>
+        function updateEmoji() {
+            const dtPercentage = parseFloat(document.querySelector('.dt-percentage').textContent);
+            const xgPercentage = parseFloat(document.querySelector('.xg-percentage').textContent);
+            const emojiElement = document.getElementById('emoji');
+
+            let bgColor = '';
+            if (dtPercentage > 50 && xgPercentage > 50) {
+                emojiElement.textContent = "FRAUD";
+                emojiElement.style.color = '#FFFFFF';
+                bgColor = '#FF474C'; 
+            } else {
+                emojiElement.textContent = "NON-FRAUD";
+                emojiElement.style.color = '#FFFFFF';
+                bgColor = '#AFE1AF';
+            }
+
+            // Apply the background color to the body
+            document.body.style.backgroundColor = bgColor;
+
+            // Apply the background color to the result divs
+            document.querySelectorAll('.result').forEach(resultDiv => {
+                resultDiv.style.backgroundColor = bgColor;
+                resultDiv.style.color = '#ffffff';
+            });
+        }
+
+        // Call the function to update emoji and background color
+        updateEmoji();
+
+        // Add fade-in effect on scroll
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('fade-in');
+                    }
+                });
+            },
+            { threshold: 0.1 }
+        );
+
+        document.querySelectorAll('.feature-card,.fraud-form').forEach((el) => {
+            observer.observe(el);
+        });
+    </script>
+</body>
+</html>
